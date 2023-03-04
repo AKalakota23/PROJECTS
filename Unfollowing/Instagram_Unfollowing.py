@@ -1,8 +1,8 @@
 import json #in order to import the .json files
 
 #opens and reads the files
-following = open("Unfollowing/following.json", "r")
-followers = open("Unfollowing/followers_1.json", "r")
+following = open("Path to following json file", "r")
+followers = open("Path to followers json file", "r")
 
 #loads and stores the files
 following_json= json.load(following)
