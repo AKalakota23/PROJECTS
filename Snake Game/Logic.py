@@ -1,165 +1,113 @@
 import random
-import pygame
 import os
 import time
-from getpass import getpass
 import keyboard
+from colorama import Fore, Style, init
 
-size = [int(x) for x in input("Choose a size for nxm matrix: ").split()]  #asks user for the size of the board 
-snake = '*' #the body of the snake (starts off as one asterik)
-startx = 0 #starting y - position of the snake  (yes, ik now the naming is contradictory but there is a reason for it)
-starty = 0 #starting x- position of the snake 
-counter = 0
+# Initialize colorama
+init()
 
-#calculates random position of the apple (need to modularize this process later through functions)
-random_x = random.randint(0, size[1]-1)
-random_y= random.randint(0, size[0]-1)
-random_coord = [random_x, random_y]
-#print(random_coord)
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
-#mechanism for creating the board by placing 0's in a 2d matrix with the size specified by the user
-l = []
-sub = []
-for i in range(size[0]):
-    for j in range(size[1]):
-        sub.append(0)
-    l.append(sub)
-    sub = []
+def create_board(size):
+    return [[0 for _ in range(size[1])] for _ in range(size[0])]
 
-#prints the board with the snake and the "apple" (1)
-l[random_coord[1]][random_coord[0]] = 1 
-l[startx][starty] = snake
-#print(l)
-os.system('cls')
-for i in range(len(l)):
-    for j in l[i]:
-        print(j, end = " ")
-    print() 
+def print_board(board, score):
+    clear_screen()
+    print(Fore.YELLOW + f"Score: {score}" + Style.RESET_ALL)  # Display score in yellow
+    for row in board:
+        for cell in row:
+            if cell == 1:  # Apple
+                print(Fore.RED + 'A', end=' ')
+            elif cell == '*':  # Snake
+                print(Fore.GREEN + '*', end=' ')
+            else:
+                print(Style.RESET_ALL + str(cell), end=' ')
+        print(Style.RESET_ALL)
+    print()
 
+def place_apple(board, size):
+    random_x = random.randint(0, size[1] - 1)
+    random_y = random.randint(0, size[0] - 1)
+    board[random_y][random_x] = 1
+    return [random_y, random_x]
 
-#keyboard controls 
-while True:
+def move_snake(snake, direction, size):
+    head = snake[0].copy()
+    
+    if direction == 'd':  # right
+        head[1] += 1
+    elif direction == 'a':  # left
+        head[1] -= 1
+    elif direction == 'w':  # up
+        head[0] -= 1
+    elif direction == 's':  # down
+        head[0] += 1
 
-    #if d is pressed 
-    if(keyboard.is_pressed('d')):
+    # Check for collision with the edges
+    if head[0] < 0 or head[0] >= size[0] or head[1] < 0 or head[1] >= size[1]:
+        return None  # Snake hit the edge, return None to indicate game over
+    
+    return head
 
-        #clearing:
-        os.system('cls') 
-        l[random_coord[1]][random_coord[0]] = 1 #resets the apple in the same position 
-        l[startx][starty] = 0 #previous position of the snake becomes 0 again so that "bits" don't get left behind
+def game_over_screen():
+    clear_screen()
+    game_over_ascii = """
+  _____                         ____                 
+ / ____|                       / __ \                
+| |  __  __ _ _ __ ___   ___   | |  | |_   _____ _ __ 
+| | |_ |/ _` | '_ ` _ \ / _ \  | |  | \ \ / / _ \ '__|
+| |__| | (_| | | | | | |  __/  | |__| |\ V /  __/ |   
+ \_____|\__,_|_| |_| |_|\___|   \____/  \_/ \___|_|   
+                                                     
+    """
+    print(Fore.RED + game_over_ascii + Style.RESET_ALL)
+    time.sleep(3)
 
-        #keeps the snake within the board and updates its position
-        if starty+1 != size[1]:
-            starty += 1
-        l[startx][starty] = snake
+def game_loop(size):
+    snake = [[0, 0]]  # Snake starts at top-left corner
+    board = create_board(size)
+    apple_pos = place_apple(board, size)
+    direction = 'd'
+    running = True
+    score = 0  # Initialize the score
 
-        #mechanism for eating the apple and updating the size of the snake 
-        if l[startx][starty] == l[random_coord[1]][random_coord[0]]: #if the position of the snake (l[startx][starty]) is equal to the positon of the apple (l[random_coord[1]][random_coord[0]])
+    while running:
+        # Handle keyboard input
+        if keyboard.is_pressed('d'): direction = 'd'
+        if keyboard.is_pressed('a'): direction = 'a'
+        if keyboard.is_pressed('w'): direction = 'w'
+        if keyboard.is_pressed('s'): direction = 's'
 
-            l[random_coord[1]][random_coord[0]] = 0 #set the previous postion of the apple to 0 
-
-            snake += '*' #update the size of the snake 
-
-            random_x = random.randint(0, size[1]-1) #generate a random x position for the apple
-            random_y= random.randint(0, size[0]-1) #generate a random y-postion for the apple 
-            random_coord = [random_x, random_y] #set them as coordinates 
+        # Move snake
+        new_head = move_snake(snake, direction, size)
         
-        #reprints the board
-        for i in range(len(l)):
-            for j in l[i]:
-                print(j, end = " ")
-            print()
-        time.sleep(0.10) #delay between movement *Warning*: Need delay, otherwise infinite loop :(
+        if new_head is None:  # Snake hit the edge, game over
+            game_over_screen()
+            break
         
-
-    #if a is pressed
-    if(keyboard.is_pressed('a')):
-
-        #clearing:
-        os.system('cls')
-        l[random_coord[1]][random_coord[0]] = 1 
-        l[startx][starty] = 0
-
-        #keeps the snake within the board and updates its position
-        if starty-1 != -1:
-            starty -= 1
-        l[startx][starty] = snake
-
-        #mechanism for eating the apple and updating the size of the snake         
-        if l[startx][starty] == l[random_coord[1]][random_coord[0]]:
-            l[random_coord[1]][random_coord[0]] = 0
-            snake += '*'
-            random_x = random.randint(0, size[1]-1)
-            random_y= random.randint(0, size[0]-1)
-            random_coord = [random_x, random_y]
-
-        #reprints the board
-        for i in range(len(l)):
-            for j in l[i]:
-                print(j, end = " ")
-            print()
-        time.sleep(0.10)
-
-
-    #if w is pressed
-    if(keyboard.is_pressed('w')):
-
-        #clearing
-        os.system('cls')
-        l[random_coord[1]][random_coord[0]] = 1 
-        l[startx][starty] = 0
-
-        #spaces out the body of the snake so that each "bit" or asterik of the body is in place of the 0 on the board as opposed to the entire body squeezed into one 0  
-        if len(snake) > 1:
-            if startx -1 != -1:
-                counter +=1
-                if counter ==1:
-                    l[startx][starty] = 0
-                temp = []
-                for i in range(len(snake)):
-                    if startx-1 != -1:
-                        startx -=1
-                        l[startx+1][starty] = snake[i]
-                temp.append(startx+(len(snake)))
-                l[temp[0]][starty] = 0
-                        
-                        
+        # Check if snake ate the apple
+        if new_head == apple_pos:
+            snake.insert(0, new_head)  # Grow the snake
+            apple_pos = place_apple(board, size)  # New apple
+            score += 1  # Increment the score
         else:
-            if startx -1 != -1:
-                startx -= 1
-            l[startx][starty] = snake
-        if l[startx][starty] == l[random_coord[1]][random_coord[0]]:
-            l[random_coord[1]][random_coord[0]] = 0
-            snake += '*'
-            random_x = random.randint(0, size[1]-1)
-            random_y= random.randint(0, size[0]-1)
-            random_coord = [random_x, random_y]
-        for i in range(len(l)):
-            for j in l[i]:
-                print(j, end = " ")
-            print()
-        time.sleep(0.10)
+            snake.insert(0, new_head)  # Move snake forward
+            snake.pop()  # Remove the tail
 
+        # Update board
+        board = create_board(size)
+        board[apple_pos[0]][apple_pos[1]] = 1  # Place apple
+        for part in snake:
+            board[part[0]][part[1]] = '*'  # Place snake
 
-    if(keyboard.is_pressed('s')):
-        os.system('cls')
-        l[random_coord[1]][random_coord[0]] = 1 
-        l[startx][starty] = 0
-        if startx != size[0]-1:
-            startx += 1
-        l[startx][starty] = snake
-        if l[startx][starty] == l[random_coord[1]][random_coord[0]]:
-            l[random_coord[1]][random_coord[0]] = 0
-            snake += '*'
-            random_x = random.randint(0, size[1]-1)
-            random_y= random.randint(0, size[0]-1)
-            random_coord = [random_x, random_y]
-        for i in range(len(l)):
-            for j in l[i]:
-                print(j, end = " ")
-            print()
-        time.sleep(0.10)
-        
+        # Print the board with the updated score
+        print_board(board, score)
 
-    
-    
+        # Delay to control speed
+        time.sleep(0.1)
+
+# Game setup
+size = [int(x) for x in input("Choose a size for nxm matrix: ").split()]
+game_loop(size)
